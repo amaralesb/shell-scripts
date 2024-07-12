@@ -128,16 +128,16 @@ for input_file in *.ktmp; do
     ##    continue
    ## fi
 
-    # Combinar las palabras de ambas filas en columnas y añadir al archivo de salida
+      # Combinar las palabras de ambas filas en columnas y añadir al archivo de salida
     for ((i=0; i<${#fila1[@]}; i++)); do
-        echo -e "${fila1[$i]}\t${fila2[$i]}" >> "$output_file"
+        echo -e "${fila1[$i]}.                  \t${fila2[$i]}" >> "$output_file"
     done
 
     # Añadir un separador entre archivos temporales
-    echo "--------------" >> "$output_file"
+    echo "----------------------------------" >> "$output_file"
 done
 
-# Eliminar la última línea con '--------------' del archivo de salida
+# Eliminar la última línea con '----------------------------------' del archivo de salida
 sed -i '$d' "$output_file"
 
 # Mostrar el contenido del archivo de salida
