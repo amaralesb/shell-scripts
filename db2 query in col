@@ -1,0 +1,161 @@
+#!/bin/bash
+
+
+#IMPORTANTE#
+## Coloque este script en el mismo directorio de las variables que editara a continuación.
+#
+
+###########################
+#*************************#
+#                         #
+# EDITE LOS DIRECTRIOS    # 
+#        # 
+#                         #
+#*************************#
+###########################
+
+echo "Script en ejecición."
+
+# Variables de BD
+DB_USER="db2ins01"
+DB_PASS="curso"
+DB_NAME="SAMPLE"
+# Variables de directorios
+archivo1="/home/db2ma/select.txt"
+temp1="/home/db2ma/archivo1_temp.kk"
+modif1="/home/db2ma/archivo1_modificado.kk"
+cabec="/home/db2ma/cabeceras.kk"
+output_file="Result.txt"
+
+echo "Variables declaradas."
+echo "Conectando a Base de datos."
+
+## Conectar a BD y obtener archivo de salida
+# Conectarse a la base de datos
+db2 connect to $DB_NAME user $DB_USER using $DB_PASS
+
+echo "Ejecutando consulta."
+# Consulta 
+db2 "SELECT * FROM syscat.tablespaces" > $archivo1
+
+# Desconectar de la base de datos
+db2 connect reset
+
+
+
+
+
+###########################
+#*************************#
+#    NO EDITABLE          #
+#*************************#
+###########################
+
+
+#  Paso 1: 
+#  Enviando archivo de salida de la consulta a un tmp
+#  Limpiando tmp
+sed '1d; 3d' $archivo1 > $temp1  # quitando 1ra y 3ra fila 
+sed -i '$d' $temp1               # quitando ultima linea
+sed -i '$d' $temp1               # quitando ultima linea
+awk '{gsub(/[[:space:]]+/, "||")} 1' $temp1 > $modif1  # reemplazando espacios por ||
+
+echo "Creando estructura de archivos." 
+
+# Paso 2: 
+# Preparando estructuras de archivos. 
+# Extraer la primera fila de archivo1.txt y moverla a cabeceras.txt
+head -n 1 $modif1 > $cabec
+# Borrar la primera fila de archivo 1 modificado.
+sed -i '1d' $modif1
+
+
+echo "Creando temporales."
+echo " "
+echo " "
+echo "=============================="
+
+# Paso 3: 
+# Creando archivos temporales por cada linea del archivo $modif1
+# Se inserta la linea del archivo $cabec en cada temporal.
+
+cabeceras=$(cat $cabec) # Leer la cabecera
+
+# Contador para nombres de archivos temporales
+counter=1
+
+# Leer archivo1_modificado.txt línea por línea
+while IFS= read -r linea; do
+    # Crear un archivo temporal
+    nombre_archivo_temporal="temp_${counter}.ktmp"
+    
+    # Escribir la cabecera y la línea actual en el archivo temporal
+    echo "$cabeceras" > "$nombre_archivo_temporal"
+    echo "$linea" >> "$nombre_archivo_temporal"
+    
+    # Incrementar el contador
+    counter=$((counter + 1))
+done < $modif1
+
+
+#########################
+
+
+# Paso 4: 
+# Manipulando archivos.
+# 
+# Vaciando archivo de salida.
+: > "$output_file"
+
+# Procesar cada archivo temporal
+for input_file in *.ktmp; do
+    ##echo "Procesando $input_file..."
+
+    # Leer las filas del archivo y almacenar las palabras en arrays
+    mapfile -t filas < "$input_file"
+
+    if [ "${#filas[@]}" -ne 2 ]; then
+        ##echo "El archivo $input_file no tiene exactamente dos filas. Saltando..."
+        continue
+    fi
+
+    IFS='||' read -r -a fila1 <<< "${filas[0]}"
+    IFS='||' read -r -a fila2 <<< "${filas[1]}"
+
+    # Verificar que ambas filas tengan el mismo número de columnas
+   ## if [ "${#fila1[@]}" -ne "${#fila2[@]}" ]; then
+   ##     echo "Las filas en $input_file no tienen el mismo número de columnas. Saltando..."
+    ##    continue
+   ## fi
+
+    # Combinar las palabras de ambas filas en columnas y añadir al archivo de salida
+    for ((i=0; i<${#fila1[@]}; i++)); do
+        echo -e "${fila1[$i]}\t${fila2[$i]}" >> "$output_file"
+    done
+
+    # Añadir un separador entre archivos temporales
+    echo "--------------" >> "$output_file"
+done
+
+# Eliminar la última línea con '--------------' del archivo de salida
+sed -i '$d' "$output_file"
+
+# Mostrar el contenido del archivo de salida
+cat "$output_file"
+
+
+#Pacotilla tecnologica
+echo "=========================================================="
+echo "El archivo con los resultados se nombra Result.txt"
+echo "----------------------------------------------------------"
+echo "Sistema de Reportes para DB2. KnowHow™ | Team Junior 2024" 
+echo "=========================================================="
+echo " "
+echo " "
+
+# Limpiando temporales
+rm -f *.ktmp *.kk
+
+
+
+
