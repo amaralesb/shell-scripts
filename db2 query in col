@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-#IMPORTANTE#
+#IMPORTANTE#################
 ## Coloque este script en el mismo directorio de las variables que editara a continuación.
 #
 
@@ -14,7 +14,7 @@
 #*************************#
 ###########################
 
-echo "Script en ejecición."
+echo "Script en ejecución."
 
 # Variables de BD
 DB_USER="db2ins01"
