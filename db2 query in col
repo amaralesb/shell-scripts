@@ -8,14 +8,18 @@
 ###########################
 #*************************#
 #                         #
-# EDITE LOS DIRECTORIOS    # 
-#                         # 
+#     EDITE SOLO LOS      #
+#      DIRECTORIOS        #
+#       Y LA CONSULTA     # 
 #                         #
 #*************************#
 ###########################
 
-echo "Script en ejecución."
+## Se conectará a BD, se hará query y el resultado de la consulta se enviará a select.txt.
+## Las extensiones kk; ktmp se tomaron de manera arbitraria para almacenar datos temporales.
 
+echo "Script en ejecución."
+# Se definen variables.
 # Variables de BD
 DB_USER="db2ins01"
 DB_PASS="curso"
@@ -31,61 +35,79 @@ echo "Variables declaradas."
 echo "Conectando a Base de datos."
 
 ## Conectar a BD y obtener archivo de salida
-# Conectarse a la base de datos
 db2 connect to $DB_NAME user $DB_USER using $DB_PASS
 
+
 echo "Ejecutando consulta."
-# Consulta 
+# Ejecutar consulta sin uso de flags. Ex: -v, -x
 db2 "SELECT * FROM syscat.tablespaces" > $archivo1
 
-# Desconectar de la base de datos
+# Desconectando de la base de datos
 db2 connect reset
 
 
 
 
-
 ###########################
 #*************************#
-#    NO EDITABLE          #
+#   MEJOR NO EDITAR       #
 #*************************#
 ###########################
 
+##Comprendemos que la estructura del archivo que devuelve la consulta DB2 tiene un formato fijo.
+##Procederemos a limpiar este archivo para dejar solo lo necesario.
 
 #  Paso 1: 
-#  Enviando archivo de salida de la consulta a un tmp
-#  Limpiando tmp
-sed '1d; 3d' $archivo1 > $temp1  # quitando 1ra y 3ra fila 
-sed -i '$d' $temp1               # quitando ultima linea
-sed -i '$d' $temp1               # quitando ultima linea
-awk '{gsub(/[[:space:]]+/, "||")} 1' $temp1 > $modif1  # reemplazando espacios por ||
+#  Enviando archivo de salida de la consulta a un archivo temporal 
 
-echo "Creando estructura de archivos." 
+sed '1d; 3d' $archivo1 > $temp1  # Eliminando 1ra y 3ra fila y enviando a archivo1_temp.kk
+sed -i '$d' $temp1               # Eliminando ultima linea y enviando a archivo1_temp.kk
+sed -i '$d' $temp1               # Eliminando ultima linea y enviando a archivo1_temp.kk
+sed -i '$d' $temp1               # Eliminando nuevamente ultima linea y enviando a archivo1_temp.kk
+awk '{gsub(/[[:space:]]+/, "||")} 1' $temp1 > $modif1  ## reemplazando los espacios por || 
+## y esta ves se envia todo a archivo1_modificado.
+### La eliminación de las ultimas lineas se hicieron una a la ves porque no daba el resultado
+### esperado si se eliminaban en la misma sentencia.
+
+ 
+
 
 # Paso 2: 
-# Preparando estructuras de archivos. 
-# Extraer la primera fila de archivo1.txt y moverla a cabeceras.txt
+## En este extraemos la primera linea del archivo archivo1_modificado que serian los nombres de las columnas
+## y las enviamos a un nuevo archivo llamado cabeceras.kk
+
+echo "Creando estructura de archivos....."
+
+# Extrayendo la primera fila de archivo1.txt y moverla a cabeceras.txt
 head -n 1 $modif1 > $cabec
-# Borrar la primera fila de archivo 1 modificado.
+
+# Borrar la primera fila de archivo1_modificado.
 sed -i '1d' $modif1
 
+## Resumiendo: En este paso creamos un nuevo archivo llamado "cabeceras.kk"
+## a el enviamos 1ra fila del "archivo1_modificado", los nombres de columnas.
+## Luego borramos esa fila de "archivo1_modificado".
+## Quedarian dos archivos, uno con la fila de los nombres de las columnas
+## Un segundo archivo con solo los datos de la consulta.
+
+
+
+# Paso 3: 
+### En este paso el objetivo es crear un archivo temporal por cada fila de datos en archivo1_modificado
 
 echo "Creando temporales."
 echo " "
 echo " "
 echo "=============================="
 
-# Paso 3: 
-# Creando archivos temporales por cada linea del archivo $modif1
-# Se inserta la linea del archivo $cabec en cada temporal.
 
-cabeceras=$(cat $cabec) # Leer la cabecera
+cabeceras=$(cat $cabec) # Leyendo cabecera
 
-# Contador para nombres de archivos temporales
+# Creramos una variable para contar los archivos temporales y la inicializamos en 1.
 counter=1
 
-# Leer archivo1_modificado.txt línea por línea
-while IFS= read -r linea; do
+# Leer archivo1_modificado.kk línea por línea
+while IFS= read -r linea; do   #bucle que lee líneas de un archivo una por una y se guardan en "linea"
     # Crear un archivo temporal
     nombre_archivo_temporal="temp_${counter}.ktmp"
     
@@ -98,42 +120,44 @@ while IFS= read -r linea; do
 done < $modif1
 
 
-#########################
 
 
-# Paso 4: 
-# Manipulando archivos.
-# 
-# Vaciando archivo de salida.
+
+# Paso 4:
+ 
+# Manipulando archivos utilizando métodos de transformación de cadenas.
+
+# Limpiando archivo de salida.
 : > "$output_file"
 
-# Procesar cada archivo temporal
+# Procesando cada archivo temporal. Se lee en bucle cada archivo en el directorio
+# con la extensión .ktmp
 for input_file in *.ktmp; do
-    ##echo "Procesando $input_file..."
-
-    # Leer las filas del archivo y almacenar las palabras en arrays
+    
+# Leer las filas del archivo $input_file y almacenar el contenido en arrays "filas" 
+# "-t"Se elimina las nuevas líneas al final de cada línea leída.
     mapfile -t filas < "$input_file"
 
-    if [ "${#filas[@]}" -ne 2 ]; then
-        ##echo "El archivo $input_file no tiene exactamente dos filas. Saltando..."
-        continue
-    fi
-
+#  Dividiendo la primera línea de "filas" en elementos utilizando || como separador.
+#  Luego, almacena esos elementos en el array "fila1".
     IFS='||' read -r -a fila1 <<< "${filas[0]}"
+	
+#  Dividiendo la primera línea de "filas" en elementos utilizando || como separador.
+#  Luego, almacena esos elementos en el array "fila2".
     IFS='||' read -r -a fila2 <<< "${filas[1]}"
 
-    # Verificar que ambas filas tengan el mismo número de columnas
-   ## if [ "${#fila1[@]}" -ne "${#fila2[@]}" ]; then
-   ##     echo "Las filas en $input_file no tienen el mismo número de columnas. Saltando..."
-    ##    continue
-   ## fi
-
-      # Combinar las palabras de ambas filas en columnas y añadir al archivo de salida
-    for ((i=0; i<${#fila1[@]}; i++)); do
+## Combinar las palabras de ambas filas en columnas y añadir al archivo de salida.
+#  Inicia un bucle "for" que recorre los elementos del array "fila1". 
+#  El número de iteraciones está determinado por la longitud del array "fila1". 
+    for ((i=0; i<${#fila1[@]}; i++)); do 
+	
+# En cada iteración, se imprime una línea que combina el elemento i de fila1 y fila2.
+# (\t) insertar un espacio de tabulación horizontal en una cadena de texto. 
+# Este espacio de tabulación se usa para alinear texto en columnas.	
         echo -e "${fila1[$i]}.                  \t${fila2[$i]}" >> "$output_file"
     done
 
-    # Añadir un separador entre archivos temporales
+# Añadir un separador entre archivos temporales.
     echo "----------------------------------" >> "$output_file"
 done
 
