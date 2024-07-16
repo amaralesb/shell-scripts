@@ -1,1 +1,50 @@
+#!/bin/bash
 
+DB_USER="db2ins01"
+DB_PASS="curso"
+DB_NAME="SAMPLE"
+archivo1="/home/db2ma/select.txt"
+temp1="/home/db2ma/archivo1_temp.kk"
+modif1="/home/db2ma/archivo1_modificado.kk"
+cabec="/home/db2ma/cabeceras.kk"
+output_file="Result.txt"
+
+db2 connect to $DB_NAME user $DB_USER using $DB_PASS
+db2 "SELECT * FROM syscat.tablespaces" > $archivo1
+db2 connect reset
+
+sed '1d; 3d' $archivo1 > $temp1  
+sed -i '$d' $temp1               
+sed -i '$d' $temp1              
+sed -i '$d' $temp1               #
+awk '{gsub(/[[:space:]]+/, "||")} 1' $temp1 > $modif1  
+
+head -n 1 $modif1 > $cabec
+sed -i '1d' $modif1
+
+cabeceras=$(cat $cabec) # Leyendo cabecera
+counter=1
+
+while IFS= read -r linea; do   
+       nombre_archivo_temporal="temp_${counter}.ktmp"      
+    echo "$cabeceras" > "$nombre_archivo_temporal"
+    echo "$linea" >> "$nombre_archivo_temporal"
+       counter=$((counter + 1))
+done < $modif1
+
+: > "$output_file"
+
+for input_file in *.ktmp; do
+  mapfile -t filas < "$input_file"
+    IFS='||' read -r -a fila1 <<< "${filas[0]}"
+	  IFS='||' read -r -a fila2 <<< "${filas[1]}"
+
+for ((i=0; i<${#fila1[@]}; i++)); do 
+echo -e "${fila1[$i]}.                  \t${fila2[$i]}" >> "$output_file"
+    done
+    echo "----------------------------------" >> "$output_file"
+done
+sed -i '$d' "$output_file"
+
+cat "$output_file"
+rm -f *.ktmp *.kk
