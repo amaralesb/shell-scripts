@@ -10,11 +10,11 @@
 
 ############################################################
 # Definir variables
-ID="maykel.amarales"
-PASSWORD="tsmmaykel"
-LOG_DIR="/home/mamarales/autom/logs"
+ID="username"
+PASSWORD="passwd"
+LOG_DIR="set_log_directory"
 CURRENT_LOG="$LOG_DIR/$(hostname)_$(date +%Y-%m-%d).log"
-STG="DKDB"
+STG="Storage_Pool_data_from"
 ##########################################################
 
 
