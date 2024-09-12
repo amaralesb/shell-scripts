@@ -48,7 +48,7 @@ echo "-----------------------------------------"
 echo "    SCRIPT PARA MIGRAR DATOS EN TSM      "
 echo "-----------------------------------------"
 echo "No existen otros procesos en ejecución."
-echo "No hay requisitos previos a la migración."
+echo "No hay solicitudes previas a la migración."
 echo ""
 echo "Continuando..."
 sleep 3
@@ -60,13 +60,13 @@ ejecutar_comandos_iniciales() {
         echo "INICIANDO PROCESO DE MIGRACIÓN DIARIA - $(date)."
         echo "======================================================================="
         echo ""
-        
+
         # Comando para obtener el volumen montado
         MOUNT_OUTPUT=$(dsmadmc -id=$ID -password=$PASSWORD q mount)
         echo "Comprobando si está montado el volumen."
         echo "======================================="
         echo "$MOUNT_OUTPUT"
-        
+
         # Extraer el nombre del Volume montado
         VOLUME=$(echo "$MOUNT_OUTPUT" | grep -oP 'LTO volume \K\w+')
         echo ""
@@ -82,8 +82,8 @@ ejecutar_comandos_iniciales() {
         echo ""
         echo ""
 
-        # Comprobar Volumenes        
-        VOL_OUTPUT=$(dsmadmc -id=$ID -password=$PASSWORD q v) 
+        # Comprobar Volumenes
+        VOL_OUTPUT=$(dsmadmc -id=$ID -password=$PASSWORD q v)
         echo "Comprobando Volúmenes."
         echo "======================="
         echo "$VOL_OUTPUT"
@@ -91,7 +91,7 @@ ejecutar_comandos_iniciales() {
         echo ""
 
         # Verificar Procesos
-        PRO_OUTPUT=$(dsmadmc -id=$ID -password=$PASSWORD q pro) 
+        PRO_OUTPUT=$(dsmadmc -id=$ID -password=$PASSWORD q pro)
         echo "Comprobando que no existan otros procesos en ejecución."
         echo "======================================================="
         echo "$PRO_OUTPUT"
@@ -99,9 +99,9 @@ ejecutar_comandos_iniciales() {
         echo ""
 
         # Verificar Requisitos
-        REQ_OUTPUT=$(dsmadmc -id=$ID -password=$PASSWORD q pro)
-        echo "Comprobando requisitos previos a la migración."
-        echo "=============================================="
+        REQ_OUTPUT=$(dsmadmc -id=$ID -password=$PASSWORD q req)
+        echo "Comprobando solicitudes previas a la migración."
+        echo "==============================================="
         echo "$REQ_OUTPUT"
         echo ""
         echo ""
@@ -114,7 +114,7 @@ iniciar_migracion() {
     echo ""
     echo "*** INICIANDO MIGRACIÓN ***"
     sleep 3
-    echo " " 
+    echo " "
     echo "*** Migrando datos desde $STG a $VOLUME ***"
     sleep 3
     echo "......MIGRANDO......" >> "$CURRENT_LOG" 2>&1
@@ -130,13 +130,13 @@ mostrar_resultados() {
     echo "----------------------------------"
     echo "ID del proceso"
     dsmadmc -id=$ID -password=$PASSWORD q pro | sed 's/ \+/|/g' | awk -F '|' 'NR==14 {print $2}'  # Muestra número de proceso en el sistema
-    echo " "    
+    echo " "
     echo -e "\e[1;33mStorage Pool a migrar \e[0m" # Muestra el Storage pool
     dsmadmc -id=$ID -password=$PASSWORD q stg $STG f=d | grep $STG | sed 's/ \+/|/g' | awk -F '|' 'NR==2 {print $1, $5, $6}'
     echo -e "\e[1;33mPorciento a migrar \e[0m" # Muestra el % a migrar desde Storage pool
     dsmadmc -id=$ID -password=$PASSWORD q stg $STG f=d | grep $STG | sed 's/ \+/|/g' | awk -F '|' 'NR==2 {print $8}'
     echo " "
-    echo -e "\e[1;32mVolumen en uso: $VOLUME \e[0m" # Muestra el volumen actual montado para recibir la migracion 
+    echo -e "\e[1;32mVolumen en uso: $VOLUME \e[0m" # Muestra el volumen actual montado para recibir la migracion
     dsmadmc -id=$ID -password=$PASSWORD q v $VOLUME f=d | grep $VOLUME | sed 's/ \+/|/g' | awk -F '|' 'NR==2 {print $4, $5}'
     dsmadmc -id=$ID -password=$PASSWORD q v $VOLUME f=d | grep $VOLUME | sed 's/ \+/|/g' | awk -F '|' 'NR==2 {print $7, $8}'
     echo "----------------------------------"
@@ -147,7 +147,7 @@ mostrar_resultados() {
     echo -e "\e[1;32m % ocupado en $VOLUME \e[0m"
     dsmadmc -id=$ID -password=$PASSWORD q v $VOLUME f=d | grep $VOLUME | sed 's/ \+/|/g' | awk -F '|' 'NR==2 {print $6}'
     echo "----------------------------------"
-	
+
 }
 
 # Procedimiento principal para ejecutar el ciclo de monitoreo
@@ -157,10 +157,10 @@ monitorear_migracion() {
         dsmadmc -id=$ID -password=$PASSWORD q pro >> "$CURRENT_LOG" 2>&1   # "q pro" al log cada ves q haga el ciclo
         echo "Porciento a migrar desde $STG " >> "$CURRENT_LOG" 2>&1  # Escribe en el log % del storage a migrar
         dsmadmc -id=$ID -password=$PASSWORD q stg $STG f=d | grep $STG | sed 's/ \+/|/g' | awk -F '|' 'NR==2 {print $8}' >> "$CURRENT_LOG" 2>&1
-	echo "Porciento ocupado en CINTA: $VOLUME *** " >> "$CURRENT_LOG" 2>&1  # Escribe en el log espacio ocupado en cinta
+            echo "Porciento ocupado en CINTA: $VOLUME" >> "$CURRENT_LOG" 2>&1  # Escribe en el log espacio ocupado en cinta
         dsmadmc -id=$ID -password=$PASSWORD q v $VOLUME f=d | grep $VOLUME | sed 's/ \+/|/g' | awk -F '|' 'NR==2 {print $6}' >> "$CURRENT_LOG" 2>&1
         echo "======================================================================================="
-        echo "============================== PROGRESO DE LA MIGRACIÓN ==============================="        
+        echo "============================== PROGRESO DE LA MIGRACIÓN ==============================="
 
         # Mostrar los resultados
         mostrar_resultados
@@ -184,4 +184,3 @@ ejecutar_comandos_iniciales
 iniciar_migracion
 mostrar_resultados
 monitorear_migracion
-
