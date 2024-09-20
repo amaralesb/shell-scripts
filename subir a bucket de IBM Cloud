@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # Variables de configuración
-BUCKET_NAME="mybucktest01"                                        #  Nombre del bucket 
-REGION="br-sao"                                                      #  Region donde esta el bucket    
+BUCKET_NAME="mybucktest"                                        #  Nombre del bucket 
+REGION="***"                                                      #  Region donde esta el bucket    
 API_KEY="***********"                                             #  API Key del usuario IBM
-FILE_PATH="/home/tsminst1/autom/catalogo/*.*"                     #  Ruta de origen del archivo
-COS_ENDPOINT="s3.br-sao.cloud-object-storage.appdomain.cloud"     #  Endpoint  
+FILE_PATH="path"                     #  Ruta de origen del archivo
+COS_ENDPOINT="s3.us-east.cloud-object-storage.appdomain.cloud"     #  Endpoint  
 
 # Función para autenticar en IBM Cloud
 authenticate_ibmcloud() {
