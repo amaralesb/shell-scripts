@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# Variables de configuración
+BUCKET_NAME="mybucktest01"                                        #  Nombre del bucket 
+REGION="br-sao"                                                      #  Region donde esta el bucket    
+API_KEY="***********"                                             #  API Key del usuario IBM
+FILE_PATH="/home/tsminst1/autom/catalogo/*.*"                     #  Ruta de origen del archivo
+COS_ENDPOINT="s3.br-sao.cloud-object-storage.appdomain.cloud"     #  Endpoint  
+
+# Función para autenticar en IBM Cloud
+authenticate_ibmcloud() {
+    echo "Autenticando en IBM Cloud..."
+    ibmcloud login --apikey $API_KEY -r $REGION
+    if [ $? -ne 0 ]; then
+        echo "Error autenticando en IBM Cloud."
+        exit 1
+    fi
+}
+
+# Función para copiar el archivo al bucket
+copy_to_bucket() {
+    echo "Subiendo $FILE_PATH a $BUCKET_NAME..."
+    ibmcloud cos object-put --bucket $BUCKET_NAME --key $(basename $FILE_PATH) --body $FILE_PATH --region $REGION
+    if [ $? -ne 0 ]; then
+        echo "Error subiendo archivo al bucket."
+        exit 1
+    fi
+    echo "Archivo subido."
+}
+
+# Verificar autenticación y subir archivo
+authenticate_ibmcloud
+copy_to_bucket
