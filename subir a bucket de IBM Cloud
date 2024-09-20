@@ -7,7 +7,7 @@ echo "$(date)"
 # Variables de configuración
 BUCKET_NAME="mybucktest01"                                        #  Nombre del bucket
 REGION="br-sao"                                                                                   #  Region donde esta el bucket
-API_KEY="cZHFH4n2-VoIjWaP57T-MCyW8oseMl6YyGRmoeOKkvL5"                                             #  API Key del usuario IBM
+API_KEY="cZmoeOKkvL5"                                             #  API Key del usuario IBM
 FILE_PATH="/home/tsminst1/autom/catalogo/*.*"                     #  Ruta de origen del archivo
 COS_ENDPOINT="s3.br-sao.cloud-object-storage.appdomain.cloud"     #  Endpoint
 
