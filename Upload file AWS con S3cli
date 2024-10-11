@@ -1,0 +1,33 @@
+#!/bin/bash
+
+echo "----------------------------------------------------------------------------------------------"
+echo "Script para upload a AWS"
+echo "$(date)"
+
+# Variables de configuración
+BUCKET_NAME="mybucktest02"                          #  Nombre del bucket
+REGION="us-east-1"                                   #  Region donde esta el bucket
+#API_KEY=                                             #  API Key del usuario IBM
+FILE_PATH="/home/tsminst1/autom/catalogo/*.*"          #  Ruta de origen del archivo
+#COS_ENDPOINT=     #  Endpoint                          # Endpoint site
+LOG_PATH="/home/tsminst1/autom/logs/copytoaws.log"       # Ruta al log
+
+
+# Función para copiar el archivo al bucket
+copy_to_bucket() {
+    echo "Subiendo $FILE_PATH a $BUCKET_NAME..."
+     aws s3 cp $FILE_PATH s3://$BUCKET_NAME/
+    if [ $? -ne 0 ]; then
+        echo "Error subiendo archivo al bucket."
+        exit 1
+    fi
+    echo "Archivo subido a AWS."
+}
+
+# Verificar autenticación y subir archivo
+copy_to_bucket
+
+
+echo "FIN DEL PROCESO"
+echo "----------------------------------------------------------------------------------------------"
+echo ""
