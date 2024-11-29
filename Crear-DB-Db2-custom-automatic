@@ -1,0 +1,173 @@
+#!/bin/bash
+# Script para ejecutar desde shell.
+
+# Variables
+instancia=$(db2ilist)
+
+
+
+############################################################
+echo ""
+echo "-------------------------------------------------------"
+echo "        Creación autoamtica de BD Bb2.    "
+echo "Ejecute el script desde un perfil de instancia de Db2"
+echo ""
+echo "         Iniciando comprobaciones..."
+echo ""
+db2 connect reset > /dev/null 2>&1 # En caso q exista conexion activa
+db2start > /dev/null 2>&1 # En caso que este abajo Db2
+
+# Validar existencia de instancia
+if ! db2ilist > /dev/null 2>&1; then
+        echo -e "\e[1;31m No está en una instancia Db2"
+        echo ""
+        return 1
+fi
+
+echo "Instancia actual: $instancia"
+echo "Version de Db2 para $instancia:  $(db2ls | awk 'NR==4 {print $2}')"
+echo "Directorio de instalación: $(db2ls | awk 'NR==4 {print $1}')"
+echo "Numero de BD instaladas: $(db2 list db directory  | awk 'NR==4 {print $8}')"
+echo "Bases de datos: " ;db2 list db directory | awk '/Database alias/ {print $4}'
+echo "Ruta de las BD: ";db2 list db directory | awk '/Local database directory/ {print $5}'
+echo ""
+echo "Preparando creación de BD"
+echo ""
+#echo "Teclee nombre de la nueva BD. El nombre debe tener entre 1 y 8 caracteres."
+#read -p "Nombre de BD:  " namenewbd
+
+# Validar 8 caracteres en el nombre de BD.
+
+validar_longitud() {
+    while true; do
+        read -p "Nombre de la BD (máximo 8 caracteres): " namenewbd
+        if [ ${#namenewbd} -le 8 ]; then
+            echo "'$namenewbd' válido."
+            break
+        else
+            echo -e "\033[31m Debe tener hasta 8 caracteres. Por favor, intente nuevamente.\033[0m"
+        fi
+    done
+}
+
+# llamar funcion
+validar_longitud
+
+
+echo ""
+#echo "Teclee ruta al directorio donde estará la nueva BD"
+
+
+echo "Teclee ruta al directorio donde estará la nueva BD"
+echo "Ejemplo /dir1/db2instx-dir/dbname-dir"
+# Función para validar directorio
+validar_ruta() {
+    while true; do
+        read -p "Ingrese la ruta: " pathdb
+        if [ -d "$pathdb" ]; then
+            echo "La ruta '$pathdb' es válida."
+            break
+        else
+            echo -e "\033[31mLa ruta '$ruta' no es válida. Por favor, intente nuevamente.\033[0m"
+        fi
+    done
+}
+
+# Llamar a la función de validación
+validar_ruta
+
+echo "En el directorio se crearan los subdirectorios conf, archiveLogs, logs, mirrorLogs, storagePath, scripts"
+
+sleep 4
+
+mkdir -p "$pathdb/$namenewbd/" "$pathdb/$namenewbd/conf" "$pathdb/$namenewbd/archiveLogs" "$pathdb/$namenewbd/logs" "$pathdb/$namenewbd/mirrorLogs" "$pathdb/$namenewbd/storagePath" "$pathdb/$namenewbd/scripts"
+
+# Validacion de Dir creado
+if [ -d "$pathdb/$namenwbd" ]; then
+        echo "Directorios creados en $pathdb/$namenewbd."
+else
+        echo -e "\033[31m Error: No se crearon los directorios. Verifique que tiene los permisos adecuados. \033[0m"
+        echo ""
+        return 1
+fi
+
+
+echo ""
+echo "Creando BD $namenewbd"
+echo  -e "\033[32m Automatic Storage en $pathdb/$namenewbd/storagePath \033[0m"
+echo  -e "\033[32m DBPATH en: $pathdb/$namenewbd/conf \033[0m"
+echo  -e "\033[32m Usando CODESET:  IBM-437 \033[0m"
+echo  -e "\033[32m Territorio: ES \033[0m"
+echo  -e "\033[32m Tamaño de páginas de 16K \033[0m"
+echo ""
+db2 -v CREATE DATABASE $namenewbd AUTOMATIC STORAGE YES ON $pathdb/$namenewbd/storagePath DBPATH ON $pathdb/$namenewbd/conf USING CODESET IBM-437 TERRITORY ES PAGESIZE 16 K
+echo ""
+echo ""
+echo "Ajustes iniciales"
+sleep 2
+echo "$(db2 connect to $namenewbd)"
+echo ""
+echo ""
+echo "Modificando parámetros de la conf en la BD"
+echo ""
+echo -e "\033[32m Habilitando Track Mode, Tamaño del logs 2048, Logs Primarios 20, Logs Secundarios 40, Deshabilitar Automantenimiento \033[0m"
+echo ""
+db2 -v update database configuration for $namenewbd using TRACKMOD YES LOGFILSIZ 2048 LOGPRIMARY 20 LOGSECOND 40 AUTO_MAINT off
+echo ""
+sleep 4
+echo -e "\033[32m Cambiando LOGPATH a $pathdb/$namenewbd/logs \033[0m"
+echo ""
+db2 -v update database configuration for $namenewbd using NEWLOGPATH $pathdb/$namenewbd/logs
+echo ""
+sleep 4
+echo -e "\033[32m Habilitar archivado de logs en $pathdb/$namenewbd/archiveLogs \033[0m"
+echo ""
+db2 -v update database configuration for $namenewbd using LOGARCHMETH1 DISK:$pathdb/$namenewbd/archiveLogs
+echo ""
+sleep 4
+echo -e "\033[32m Habilitar Mirror Log en $pathdb/$namenewbd/mirrorLogs \033[0m"
+echo ""
+db2 -v update database configuration for $namenewbd using MIRRORLOGPATH $pathdb/$namenewbd/mirrorLogs
+echo ""
+sleep 2
+echo "Desconectando de $namenewbd"
+echo "$(db2 connect reset)"
+echo ""
+sleep 2
+echo "Deteniendo Db2"
+echo "$(db2stop force)"
+sleep 2
+echo ""
+echo "Inciando Db2"
+echo "$(db2start)"
+echo ""
+echo ""
+echo -e "\033[32m Creando Backup de $namenewbd luego de modificar Metodo de archivado \033[0m"
+echo "$(db2 -v backup database $namenewbd to /dev/null)"
+echo ""
+echo ""
+echo "Conectando a BD $namenewbd"
+echo ""
+echo ""
+echo "$(db2 connect to $namenewbd)"
+echo ""
+echo ""
+echo -e "\033[32m Se ha creado BD $namenewbd \033[0m"
+echo ""
+sleep 3
+echo "Comprobando parámetros de la BD $namenewbd"
+sleep 1
+db2 get db configuration | grep -i TRACKMOD | awk '{print $4 $5 $6}'
+db2 get db configuration | grep -i LOGFILSIZ | awk '{gsub(/\)\s+\(/, ")---("); print}'
+db2 get db configuration | grep -i LOGPRIMARY | awk '{print $6 $7 $8}'
+db2 get db configuration | grep -i LOGSECOND | awk '{print $6 $7 $8}'
+db2 get db configuration | grep -i AUTO_MAINT | awk '{print $3 $4 $5}'
+echo -n "NEWLOGPATH :"; db2 get db configuration | grep -i 'Path to log files' | awk 'NR==2 {print $6}'
+db2 get db configuration | grep -i 'LOGARCHMETH1' | awk 'NR==1 {print $5 $6 $7}'
+db2 get db configuration | grep -i 'MIRRORLOGPATH' | awk 'NR==1 {print $4 $5 $6}'
+echo ""
+echo ""
+echo -e "\033[32m ------------- FIN DE LA EJECUCION ------------ \033[0m"
+echo ""
+echo ""
+[db2inst1 @ rhel94  db2inst1 ~]
