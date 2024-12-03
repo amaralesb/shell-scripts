@@ -1,0 +1,25 @@
+#!/bin/bash
+
+echo " -- Sync config from Google Drive --"
+
+target=/home/maykel/.ssh
+old=$target/config-last/
+
+mount -t drvfs I: /mnt/i
+cd  /mnt/i/.shortcut-targets-by-id/1l6Xpv9NDsbRkhqVgtSm3U4G4SBOuEbb3/
+cd 'Utils ssh'
+new="$(sudo ls -t | head -n 1)"
+echo -e "\033[32m -- Last config file:\033[0m" $new
+echo -e "\033[32m -- Copy into .ssh \033[0m"
+cp $new $target
+echo -e "\033[32m -- Backup old config \033[0m"
+mv -f $target/config $old
+mv $target/$new $target/config
+echo -e "\033[32m -- Set owner and permissions \033[0m"
+chmod 600 $target/config
+chown maykel:maykel $target/config
+echo -e "\033[32m -- Set customs adjusts \033[0m"
+cat $target/tsm-jumps.txt >> $target/config
+sed -i 's/ANTEL-RENAME/mayamarales/g' $target/config
+echo " -- Done --"
+cd
