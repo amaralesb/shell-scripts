@@ -1,0 +1,12 @@
+# Definir rutas
+$sourceDir = "I:\.shortcut-targets-by-id\1l6Xpv9NDsbRkhqVgtSm3U4G4SBOuEbb3\Utils ssh\"
+$destDir = "Z:\home\maykel\.ssh_temp\"
+
+# Obtener el archivo más reciente
+$latestFile = Get-ChildItem -Path $sourceDir | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+
+# Copiar el archivo más reciente al directorio de destino
+Copy-Item -Path $latestFile.FullName -Destination $destDir
+
+# Confirmar la copia
+Write-Output "El archivo más reciente '$($latestFile.Name)' ha sido copiado a '$destDir'"
